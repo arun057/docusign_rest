@@ -207,7 +207,7 @@ module DocusignRest
     # hashes with commas
     #
     # embedded -  Tells DocuSign if this is an embedded signer which determines
-    #             weather or not to deliver emails. Also lets us authenticate
+    #             whether or not to deliver emails. Also lets us authenticate
     #             them when they go to do embedded signing. Behind the scenes
     #             this is setting the clientUserId value to the signer's email.
     # name      - The name of the signer
@@ -276,7 +276,7 @@ module DocusignRest
       return {} unless event_notification
       {
         useSoapInterface:          event_notification[:use_soap_interface] || false,
-        includeCertificatWithSoap: event_notification[:include_certificate_with_soap] || false,
+        includeCertificateWithSoap: event_notification[:include_certificate_with_soap] || false,
         url:                       event_notification[:url],
         loggingEnabled:            event_notification[:logging],
         'envelopeEvents' => Array(event_notification[:envelope_events]).map do |envelope_event|
@@ -305,7 +305,7 @@ module DocusignRest
     # email              - The signer's email
     # name               - The signer's name
     # embedded           - Tells DocuSign if this is an embedded signer which
-    #                      determines weather or not to deliver emails. Also
+    #                      determines whether or not to deliver emails. Also
     #                      lets us authenticate them when they go to do
     #                      embedded signing. Behind the scenes this is setting
     #                      the clientUserId value to the signer's email.
@@ -441,7 +441,7 @@ module DocusignRest
     # name               - The recipient name
     # recipient_id       - The recipient's id
     # embedded           - Tells DocuSign if this is an embedded recipient which
-    #                      determines weather or not to deliver emails.
+    #                      determines whether or not to deliver emails.
     def get_certified_deliveries(certified_deliveries)
       doc_certified_deliveries = []
 
@@ -640,6 +640,7 @@ module DocusignRest
           recipientId: signer[:recipient_id],
           roleName: signer[:role_name],
           clientUserId: signer[:client_id] || signer[:email],
+          requireSignOnPaper: signer[:require_sign_on_paper] || false,
           tabs: {
             textTabs:     get_signer_tabs(signer[:text_tabs]),
             checkboxTabs: get_signer_tabs(signer[:checkbox_tabs]),
@@ -864,6 +865,7 @@ module DocusignRest
         emailBlurb:         options[:email][:body],
         emailSubject:       options[:email][:subject],
         templateId:         options[:template_id],
+        enableWetSign:      options[:wet_sign],
         brandId:            options[:brand_id],
         eventNotification:  get_event_notification(options[:event_notification]),
         templateRoles:      get_template_roles(options[:signers]),
@@ -894,10 +896,8 @@ module DocusignRest
     # email/body            - Sets the text in the email body
     # email/subject         - Sets the text in the email subject line
     # files                 - Sets documents to be used instead of inline or server templates
-    # template_roles        - See the get_template_roles method definition for a list
-    #                         of options to pass. Note: for consistency sake we call
-    #                         this 'signers' and not 'templateRoles' when we build up
-    #                         the request in client code.
+    # signers               - See get_template_roles/get_inline_signers for a list
+    #                         of options to pass.
     # headers               - Optional hash of headers to merge into the existing
     #                         required headers for a multipart request.
     # server_template_ids   - Array of ids for templates uploaded to DocuSign. Templates
@@ -1526,7 +1526,7 @@ module DocusignRest
     end
 
     # Public deletes a document for a given envelope
-    # See https://www.docusign.com/p/RESTAPIGuide/RESTAPIGuide.htm#REST API References/Remove Documents from a Draft Envelope.htm%3FTocPath%3DREST%2520API%2520References%7C_____54
+    # See https://docs.docusign.com/esign/restapi/Envelopes/EnvelopeDocuments/delete/
     #
     # envelope_id  - ID of the envelope from which the doc will be retrieved
     # document_id - ID of the document to delete
@@ -1556,7 +1556,7 @@ module DocusignRest
     end
 
     # Public adds a document to a given envelope
-    # See https://www.docusign.com/p/RESTAPIGuide/RESTAPIGuide.htm#REST API References/Add Document.htm%3FTocPath%3DREST%2520API%2520References%7C_____56
+    # See https://docs.docusign.com/esign/restapi/Envelopes/EnvelopeDocuments/update/
     #
     # envelope_id  - ID of the envelope from which the doc will be added
     # document_id - ID of the document to add
@@ -1588,15 +1588,15 @@ module DocusignRest
     end
 
     # Public adds signers to a given envelope
-    # See https://www.docusign.com/p/RESTAPIGuide/RESTAPIGuide.htm#REST%20API%20References/Add%20Recipients%20to%20an%20Envelope.htm%3FTocPath%3DREST%2520API%2520References|_____77
+    # Seehttps://docs.docusign.com/esign/restapi/Envelopes/EnvelopeRecipients/update/
     #
     # envelope_id - ID of the envelope to which the recipient will be added
     # signers - Array of hashes
-    #           See https://www.docusign.com/p/RESTAPIGuide/RESTAPIGuide.htm#REST%20API%20References/Recipients/Signers%20Recipient.htm%3FTocPath%3DREST%2520API%2520References|Send%2520an%2520Envelope%2520or%2520Create%2520a%2520Draft%2520Envelope|Recipient%2520Parameters|_____7
+    #           See https://docs.docusign.com/esign/restapi/Envelopes/EnvelopeRecipients/update/#definitions
     #
     # TODO: This could be made more general as an add_envelope_recipient method
     # to handle recipient types other than Signer
-    # See: https://www.docusign.com/p/RESTAPIGuide/RESTAPIGuide.htm#REST%20API%20References/Recipient%20Parameter.htm%3FTocPath%3DREST%2520API%2520References|Send%2520an%2520Envelope%2520or%2520Create%2520a%2520Draft%2520Envelope|Recipient%2520Parameters|_____0
+    # See: https://docs.docusign.com/esign/restapi/Envelopes/EnvelopeRecipients/update/#examples
     def add_envelope_signers(options = {})
       content_type = { "Content-Type" => "application/json" }
       content_type.merge(options[:headers]) if options[:headers]
@@ -1614,7 +1614,7 @@ module DocusignRest
     end
 
     # Public adds recipient tabs to a given envelope
-    # See https://www.docusign.com/p/RESTAPIGuide/RESTAPIGuide.htm#REST API References/Add Tabs for a Recipient.htm%3FTocPath%3DREST%2520API%2520References%7C_____86
+    # See https://docs.docusign.com/esign/restapi/Envelopes/EnvelopeRecipients/update/
     #
     # envelope_id  - ID of the envelope from which the doc will be added
     # recipient - ID of the recipient to add tabs to
